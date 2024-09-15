@@ -25,15 +25,14 @@ namespace TMPatcher
             // FeatureGuaranteeOneIngredientEffect
             if (Settings.FeatureGuaranteeOneIngredientEffect)
             {
-                // TODO: Find a better way to get an effect.
-                Effect? nullableEffect = null;
-                Console.WriteLine($"state.LoadOrder.PriorityOrder.WinningOverrides<Ingredient>():{state.LoadOrder.PriorityOrder.WinningOverrides<Ingredient>().Count()}");
-                foreach (var ingredient in state.LoadOrder.PriorityOrder.WinningOverrides<Ingredient>())
+                // TODO: Find a better way to get an effect. Also, it might be better to get a different effect, like restore fatigue.
+                IEffectGetter? nullableEffect = null;
+                foreach (var ingredient in state.LoadOrder.PriorityOrder.WinningOverrides<IIngredientGetter>())
                 {
                     try
                     {
                         Console.WriteLine("Before getting effect.");
-                        nullableEffect = ingredient.Effects.First();
+                        nullableEffect = ingredient.Effects[0];
                         Console.WriteLine("After getting effect.");
                     }
                     catch (Exception e)
@@ -43,37 +42,20 @@ namespace TMPatcher
                 }
                 var effect = nullableEffect!;
                 
-                foreach (var oldIngredient in state.LoadOrder.PriorityOrder.WinningOverrides<Ingredient>())
+                foreach (var oldIngredient in state.LoadOrder.PriorityOrder.WinningOverrides<IIngredientGetter>())
                 {
                     try
                     {
                         if (oldIngredient.Effects.Count > 0)
                         {
-                            Console.WriteLine("Skipping ingredient because Count > 0");
+                            Console.WriteLine($"Skipping ingredient because Count > 0. EditorID:{oldIngredient.EditorID} Name:{oldIngredient.Name}");
                             continue;
                         }
 
                         var newIngredient = oldIngredient.DeepCopy();
-                        newIngredient.Effects.Add(effect);
+                        newIngredient.Effects.Add(effect.DeepCopy());
                         state.PatchMod.Ingredients.Set(newIngredient);
-                        Console.WriteLine($"Successfully modified ingredient. EditorID:{newIngredient.EditorID} Name:{newIngredient.Name}");
-                        // if (oldNpc.Stats?.Speed == null || oldNpc.EditorID == null)
-                        //     continue;
-                        //
-                        // var newNpc = oldNpc.DeepCopy();
-                        //
-                        // if (Settings.NpcBlacklist.Contains(newNpc))
-                        //     Console.WriteLine($"Found NpcBlacklist EditorID:{oldNpc.EditorID} Name:{oldNpc.Name} id:{oldNpc.FormKey.ModKey.FileName}`{oldNpc.FormKey.IDString()}");
-                        //
-                        // if (newNpc.Stats?.Speed == null || newNpc.Stats.Speed <= 1)
-                        //     continue;
-                        //
-                        // newNpc.Stats.Speed = (byte)CalcSpeed(newNpc.Stats.Speed);
-                        //
-                        // state.PatchMod.Npcs.Set(newNpc);
-                        // Console.WriteLine($"Successfully modified npc. EditorID:{newNpc.EditorID} Name:{newNpc.Name}");
-                        // ++count;
-                        // Console.WriteLine($"\tOldSpeed:{oldNpc.Stats.Speed} NewSpeed:{newNpc.Stats.Speed}\n");
+                        Console.WriteLine($"Modified ingredient. EditorID:{newIngredient.EditorID} Name:{newIngredient.Name}");
                     }
                     catch (Exception ex)
                     {

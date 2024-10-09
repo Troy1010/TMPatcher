@@ -9,6 +9,7 @@ namespace TMPatcher
     {
         private static Lazy<Settings> _settings = null!;
         private static Settings Settings => _settings.Value;
+
         public static async Task<int> Main(string[] args)
         {
             return await SynthesisPipeline.Instance
@@ -21,7 +22,42 @@ namespace TMPatcher
         public static void RunPatch(IPatcherState<IOblivionMod, IOblivionModGetter> state)
         {
             Console.WriteLine("\n\nRunPatch`Open\n");
-            Console.WriteLine($"Settings.FeatureGuaranteeOneIngredientEffect:{Settings.FeatureGuaranteeOneIngredientEffect}");
+            // FeatureGuaranteeCreatureSpeed
+            if (Settings.FeatureGuaranteeCreatureSpeed)
+            {
+                foreach (var oldCreature in state.LoadOrder.PriorityOrder.WinningOverrides<ICreatureGetter>())
+                {
+                    try
+                    {
+                        if (oldCreature.EditorID != null && oldCreature.EditorID!.StartsWith("Test"))
+                        {
+                            Console.WriteLine($"Skipping oldCreature because EditorID starts with Test. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
+                            continue;
+                        }
+                        
+                        if (oldCreature.Data == null)
+                        {
+                            Console.WriteLine($"Skipping oldCreature oldCreature.Data was null. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
+                            continue;
+                        }
+
+                        if (oldCreature.Data?.Speed > 30)
+                        {
+                            Console.WriteLine($"Skipping oldCreature because Speed > 30. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
+                            continue;
+                        }
+
+                        var newCreature = oldCreature.DeepCopy();
+                        newCreature.Data!.Speed = 30;
+                        state.PatchMod.Creatures.Set(newCreature);
+                        Console.WriteLine($"Modified creature. EditorID:{newCreature.EditorID} Name:{newCreature.Name}");
+                    }
+                    catch (Exception ex)
+                    {
+                        throw RecordException.Enrich(ex, oldCreature);
+                    }
+                }
+            }
             // FeatureGuaranteeOneIngredientEffect
             if (Settings.FeatureGuaranteeOneIngredientEffect)
             {
@@ -40,8 +76,9 @@ namespace TMPatcher
                         Console.WriteLine("Couldn't get effect from ingredient.");
                     }
                 }
+
                 var effect = nullableEffect!;
-                
+
                 foreach (var oldIngredient in state.LoadOrder.PriorityOrder.WinningOverrides<IIngredientGetter>())
                 {
                     try
@@ -63,6 +100,7 @@ namespace TMPatcher
                     }
                 }
             }
+
             Console.WriteLine("\n\nRunPatch`Close\n");
         }
     }

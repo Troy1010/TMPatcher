@@ -22,6 +22,7 @@ namespace TMPatcher
         public static void RunPatch(IPatcherState<IOblivionMod, IOblivionModGetter> state)
         {
             Console.WriteLine("\n\nRunPatch`Open\n");
+            var changeCount = 0;
             // FeatureGuaranteeCreatureSpeed
             if (Settings.FeatureGuaranteeCreatureSpeed)
             {
@@ -29,28 +30,31 @@ namespace TMPatcher
                 {
                     try
                     {
-                        if (oldCreature.EditorID != null && oldCreature.EditorID!.StartsWith("Test"))
+                        // This check is temporary. It helps workaround an error I was getting, but sacrifices editing more creatures.
+                        if (!oldCreature.FormKey.ModKey.Name.Contains("The Lost Spires"))
                         {
-                            Console.WriteLine($"Skipping oldCreature because EditorID starts with Test. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
+                            Console.WriteLine($"Skipping oldCreature because it was not from The Lost Spires. FormKey.ModKey.Name:{oldCreature.FormKey.ModKey.Name}");
                             continue;
                         }
-                        
+
+                        //
                         if (oldCreature.Data == null)
                         {
                             Console.WriteLine($"Skipping oldCreature oldCreature.Data was null. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
                             continue;
                         }
 
-                        if (oldCreature.Data?.Speed > 30)
+                        if (oldCreature.Data?.Speed >= 30)
                         {
-                            Console.WriteLine($"Skipping oldCreature because Speed > 30. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
+                            Console.WriteLine($"Skipping oldCreature because Speed >= 30. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
                             continue;
                         }
 
                         var newCreature = oldCreature.DeepCopy();
                         newCreature.Data!.Speed = 30;
                         state.PatchMod.Creatures.Set(newCreature);
-                        Console.WriteLine($"Modified creature. EditorID:{newCreature.EditorID} Name:{newCreature.Name}");
+                        changeCount++;
+                        Console.WriteLine($"Modified creature. FormKey.ModKey.Name:{newCreature.FormKey.ModKey.Name} EditorID:{newCreature.EditorID} Name:{newCreature.Name}");
                     }
                     catch (Exception ex)
                     {
@@ -58,6 +62,7 @@ namespace TMPatcher
                     }
                 }
             }
+
             // FeatureGuaranteeOneIngredientEffect
             if (Settings.FeatureGuaranteeOneIngredientEffect)
             {
@@ -92,6 +97,7 @@ namespace TMPatcher
                         var newIngredient = oldIngredient.DeepCopy();
                         newIngredient.Effects.Add(effect.DeepCopy());
                         state.PatchMod.Ingredients.Set(newIngredient);
+                        changeCount++;
                         Console.WriteLine($"Modified ingredient. EditorID:{newIngredient.EditorID} Name:{newIngredient.Name}");
                     }
                     catch (Exception ex)
@@ -101,7 +107,7 @@ namespace TMPatcher
                 }
             }
 
-            Console.WriteLine("\n\nRunPatch`Close\n");
+            Console.WriteLine($"\n\nRunPatch`Close. changeCount:{changeCount}\n");
         }
     }
 }

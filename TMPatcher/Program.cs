@@ -30,17 +30,9 @@ namespace TMPatcher
                 {
                     try
                     {
-                        // This check is temporary. It helps workaround an error I was getting, but sacrifices editing more creatures.
-                        if (!oldCreature.FormKey.ModKey.Name.Contains("The Lost Spires"))
-                        {
-                            Console.WriteLine($"Skipping oldCreature because it was not from The Lost Spires. FormKey.ModKey.Name:{oldCreature.FormKey.ModKey.Name}");
-                            continue;
-                        }
-
-                        //
                         if (oldCreature.Data == null)
                         {
-                            Console.WriteLine($"Skipping oldCreature oldCreature.Data was null. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
+                            Console.WriteLine($"Skipping oldCreature because Data was null. EditorID:{oldCreature.EditorID} Name:{oldCreature.Name}");
                             continue;
                         }
 

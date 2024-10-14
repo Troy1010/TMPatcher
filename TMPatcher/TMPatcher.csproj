@@ -6,7 +6,7 @@
     <ImplicitUsings>true</ImplicitUsings>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Mutagen.Bethesda.Oblivion" Version="0.47.2" />
+    <PackageReference Include="Mutagen.Bethesda.Oblivion" Version="0.47.4-nightly-20241014-100298" />
     <PackageReference Include="Mutagen.Bethesda.Synthesis" Version="0.30.5" />
   </ItemGroup>
 </Project>

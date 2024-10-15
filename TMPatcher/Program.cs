@@ -1,4 +1,5 @@
 using Mutagen.Bethesda;
+using Mutagen.Bethesda.Environments;
 using Mutagen.Bethesda.Oblivion;
 using Mutagen.Bethesda.Plugins.Exceptions;
 using Mutagen.Bethesda.Synthesis;
@@ -23,6 +24,50 @@ namespace TMPatcher
         {
             Console.WriteLine("\n\nRunPatch`Open\n");
             var changeCount = 0;
+            // FeatureAdjustLocks
+            if (Settings.FeatureAdjustLocks)
+            {
+                using (var environment = GameEnvironment.Typical.Oblivion())
+                {
+                    // Now we can get straight to work
+                    Console.WriteLine($"Data folder was found to be at: {environment.DataFolderPath}");
+                    Console.WriteLine($"Load Order has {environment.LoadOrder.Count} mods");
+
+                    // Let's print the load order as an example
+                    Console.WriteLine($"Load Order:");
+                    foreach (var listing in environment.LoadOrder.ListedOrder)
+                    {
+                        Console.WriteLine($"  {listing}");
+                    }
+
+                    foreach (var context in environment.LoadOrder.PriorityOrder.PlacedObject().WinningContextOverrides(environment.LinkCache))
+                    {
+                        try
+                        {
+                            var baseZ = context.Record.Base.TryResolve<IContainerGetter>(environment.LinkCache);
+                            if (baseZ != null && context.Record.Lock != null && context.Record.Lock?.LockLevel < Settings.FeatureAdjustLocks_MinimumLockLevel)
+                            {
+                                Console.WriteLine($"Found locked container below minimum lock level. FormKey:{context.Record.FormKey} EditorID:{context.Record.EditorID} ModKey:{context.ModKey}");
+                                
+                                var newRecord = context.GetOrAddAsOverride(state.PatchMod);
+                                newRecord.Lock!.LockLevel = Math.Max((byte)Settings.FeatureAdjustLocks_MinimumLockLevel, newRecord.Lock!.LockLevel);
+                                // TODO: Might also want to remove the "Auto level" flag
+                                changeCount++;
+                            }
+                            else
+                            {
+                                // Console.WriteLine($"Does not match. FormKey:{context.Record.FormKey}. 1:{context.Record.Lock != null} 2:{context.Record.Lock?.LockLevel > Settings.FeatureAdjustLocks_MinimumLockLevel} 3:{baseZ != null}. context.Record.Lock?.LockLevel:{context.Record.Lock?.LockLevel}. Settings.FeatureAdjustLocks_MinimumLockLevel:{Settings.FeatureAdjustLocks_MinimumLockLevel}");
+                                // Console.WriteLine($"{context.Record.FormKey} 2:{context.Record.Lock?.LockLevel > Settings.FeatureAdjustLocks_MinimumLockLevel} LockLevel:{context.Record.Lock?.LockLevel}.");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            throw RecordException.Enrich(ex, context.Record);
+                        }
+                    }
+                }
+            }
+
             // FeatureGuaranteeCreatureSpeed
             if (Settings.FeatureGuaranteeCreatureSpeed)
             {

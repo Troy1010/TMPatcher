@@ -27,43 +27,32 @@ namespace TMPatcher
             // FeatureAdjustLocks
             if (Settings.FeatureAdjustLocks)
             {
-                using (var environment = GameEnvironment.Typical.Oblivion())
+                foreach (var context in state.LoadOrder.PriorityOrder.PlacedObject().WinningContextOverrides(state.LinkCache))
                 {
-                    // Now we can get straight to work
-                    Console.WriteLine($"Data folder was found to be at: {environment.DataFolderPath}");
-                    Console.WriteLine($"Load Order has {environment.LoadOrder.Count} mods");
-
-                    // Let's print the load order as an example
-                    Console.WriteLine($"Load Order:");
-                    foreach (var listing in environment.LoadOrder.ListedOrder)
+                    try
                     {
-                        Console.WriteLine($"  {listing}");
+                        var baseZ = context.Record.Base.TryResolve<IContainerGetter>(state.LinkCache);
+                        if (baseZ != null && context.Record.Lock != null && context.Record.Lock?.LockLevel < Settings.FeatureAdjustLocks_MinimumLockLevel)
+                        {
+                            Console.WriteLine($"Found locked container below minimum lock level. FormKey:{context.Record.FormKey} EditorID:{context.Record.EditorID} ModKey:{context.ModKey}");
+
+                            var newRecord = context.GetOrAddAsOverride(state.PatchMod);
+                            newRecord.Lock!.LockLevel = Math.Max((byte)Settings.FeatureAdjustLocks_MinimumLockLevel, newRecord.Lock!.LockLevel);
+                            // TODO: Might also want to remove the "Auto level" flag
+                            changeCount++;
+                        }
+                        else
+                        {
+                            // Console.WriteLine($"Does not match. FormKey:{context.Record.FormKey}. 1:{context.Record.Lock != null} 2:{context.Record.Lock?.LockLevel > Settings.FeatureAdjustLocks_MinimumLockLevel} 3:{baseZ != null}. context.Record.Lock?.LockLevel:{context.Record.Lock?.LockLevel}. Settings.FeatureAdjustLocks_MinimumLockLevel:{Settings.FeatureAdjustLocks_MinimumLockLevel}");
+                            // if (context.Record.FormKey.ToString().Contains("0A81B2"))
+                            // {
+                            //     Console.WriteLine($"{context.Record.FormKey} LockLevel:{context.Record.Lock?.LockLevel}.");
+                            // }
+                        }
                     }
-
-                    foreach (var context in environment.LoadOrder.PriorityOrder.PlacedObject().WinningContextOverrides(environment.LinkCache))
+                    catch (Exception ex)
                     {
-                        try
-                        {
-                            var baseZ = context.Record.Base.TryResolve<IContainerGetter>(environment.LinkCache);
-                            if (baseZ != null && context.Record.Lock != null && context.Record.Lock?.LockLevel < Settings.FeatureAdjustLocks_MinimumLockLevel)
-                            {
-                                Console.WriteLine($"Found locked container below minimum lock level. FormKey:{context.Record.FormKey} EditorID:{context.Record.EditorID} ModKey:{context.ModKey}");
-                                
-                                var newRecord = context.GetOrAddAsOverride(state.PatchMod);
-                                newRecord.Lock!.LockLevel = Math.Max((byte)Settings.FeatureAdjustLocks_MinimumLockLevel, newRecord.Lock!.LockLevel);
-                                // TODO: Might also want to remove the "Auto level" flag
-                                changeCount++;
-                            }
-                            else
-                            {
-                                // Console.WriteLine($"Does not match. FormKey:{context.Record.FormKey}. 1:{context.Record.Lock != null} 2:{context.Record.Lock?.LockLevel > Settings.FeatureAdjustLocks_MinimumLockLevel} 3:{baseZ != null}. context.Record.Lock?.LockLevel:{context.Record.Lock?.LockLevel}. Settings.FeatureAdjustLocks_MinimumLockLevel:{Settings.FeatureAdjustLocks_MinimumLockLevel}");
-                                // Console.WriteLine($"{context.Record.FormKey} 2:{context.Record.Lock?.LockLevel > Settings.FeatureAdjustLocks_MinimumLockLevel} LockLevel:{context.Record.Lock?.LockLevel}.");
-                            }
-                        }
-                        catch (Exception ex)
-                        {
-                            throw RecordException.Enrich(ex, context.Record);
-                        }
+                        throw RecordException.Enrich(ex, context.Record);
                     }
                 }
             }
